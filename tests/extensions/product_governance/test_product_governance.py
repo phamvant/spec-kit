@@ -10,6 +10,7 @@ import yaml
 from jsonschema import Draft202012Validator
 
 from specify_cli.extensions import ExtensionManifest, ExtensionManager
+from specify_cli.integrations.base import IntegrationBase
 from specify_cli.presets import PresetManifest
 from specify_cli.workflows.engine import WorkflowDefinition, validate_workflow
 
@@ -232,6 +233,22 @@ class TestPackageSurface:
         assert manifest.id == "product-governance"
         assert len(manifest.commands) == 7
         assert all((EXTENSION_ROOT / command["file"]).is_file() for command in manifest.commands)
+
+    def test_commands_resolve_extension_local_tool_calls(self):
+        manifest = ExtensionManifest(EXTENSION_ROOT / "extension.yml")
+        for command in manifest.commands:
+            source = (EXTENSION_ROOT / command["file"]).read_text(encoding="utf-8")
+            assert "{SCRIPT}" in source
+            rendered = IntegrationBase.process_template(
+                source,
+                agent_name="codex",
+                script_type="sh",
+            )
+            assert "{SCRIPT}" not in rendered
+            assert (
+                ".specify/extensions/product-governance/scripts/bash/"
+                "product-governance.sh"
+            ) in rendered
 
     def test_install_copies_deterministic_package(self, tmp_path: Path):
         (tmp_path / ".specify").mkdir()

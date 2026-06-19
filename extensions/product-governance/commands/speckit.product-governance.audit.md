@@ -1,8 +1,8 @@
 ---
 description: "Run read-only deterministic and bounded semantic product audit"
 scripts:
-  sh: ../scripts/bash/product-governance.sh
-  ps: ../scripts/powershell/product-governance.ps1
+  sh: .specify/extensions/product-governance/scripts/bash/product-governance.sh
+  ps: .specify/extensions/product-governance/scripts/powershell/product-governance.ps1
 ---
 
 # Product Audit
@@ -12,3 +12,11 @@ findings using only bounded registry, trace, specification, constitution, and
 ledger context. Each semantic finding must include evidence, confidence, and a
 recommendation. Do not mutate source artifacts; write reports only.
 
+Execute the deterministic layer from the project root:
+
+```text
+{SCRIPT} --json audit --threshold high
+```
+
+Use `--threshold critical` only when project configuration explicitly requests
+it. Return report paths and preserve the deterministic exit status.

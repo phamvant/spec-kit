@@ -1,13 +1,20 @@
 ---
 description: "Initialize product governance artifacts"
 scripts:
-  sh: ../scripts/bash/product-governance.sh
-  ps: ../scripts/powershell/product-governance.ps1
+  sh: .specify/extensions/product-governance/scripts/bash/product-governance.sh
+  ps: .specify/extensions/product-governance/scripts/powershell/product-governance.ps1
 ---
 
 # Initialize Product Governance
 
-Parse `$ARGUMENTS` for product ID, product name, and optional `--force`. Run the
-deterministic launcher with `init --product-id <id> --product-name <name>`.
-Do not edit `.product/` directly. Report changed files and validation status.
+Parse `$ARGUMENTS` for product ID, product name, and optional `--force`.
 
+Run from the project root:
+
+```text
+{SCRIPT} --json init --product-id "<id>" --product-name "<name>" [--force]
+```
+
+Execute the command rather than printing it. Do not edit `.product/` directly.
+Return the operation ID, changed files, no-op state, and validation result from
+the JSON response.

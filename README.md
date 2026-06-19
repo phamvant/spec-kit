@@ -24,6 +24,7 @@
 - [📽️ Video Overview](#️-video-overview)
 - [🌍 Community](#-community)
 - [🤖 Supported AI Coding Agent Integrations](#-supported-ai-coding-agent-integrations)
+- [🏛️ Product Governance Workflow](#️-product-governance-workflow)
 - [🔧 Specify CLI Reference](#-specify-cli-reference)
 - [🧩 Making Spec Kit Your Own: Extensions & Presets](#-making-spec-kit-your-own-extensions--presets)
 - [📚 Core Philosophy](#-core-philosophy)
@@ -174,6 +175,50 @@ Additional commands for enhanced quality and validation:
 | `/speckit.clarify`   | `speckit-clarify`      | Clarify underspecified areas (recommended before `/speckit.plan`; formerly `/quizme`)                                                |
 | `/speckit.analyze`   | `speckit-analyze`      | Cross-artifact consistency & coverage analysis (run after `/speckit.tasks`, before `/speckit.implement`)                             |
 | `/speckit.checklist` | `speckit-checklist`    | Generate custom quality checklists that validate requirements completeness, clarity, and consistency (like "unit tests for English") |
+
+## 🏛️ Product Governance Workflow
+
+For products that need requirements managed across multiple features, install
+the bundled Product Governance extension, Product SDD preset, and gated feature
+workflow from the root of an initialized project:
+
+```bash
+specify extension add product-governance
+specify preset add product-sdd
+specify workflow add product-feature-cycle
+```
+
+Restart or reload the coding agent after installation. Most integrations expose
+commands such as:
+
+```text
+/speckit.product-governance.init
+/speckit.product-governance.requirement
+/speckit.product-governance.impact
+/speckit.product-governance.verify
+/speckit.product-governance.audit
+/speckit.product-governance.changelog
+/speckit.product-governance.validate
+```
+
+Codex uses the equivalent skills:
+
+```text
+$speckit-product-governance-init
+$speckit-product-governance-requirement
+$speckit-product-governance-impact
+$speckit-product-governance-verify
+$speckit-product-governance-audit
+$speckit-product-governance-changelog
+$speckit-product-governance-validate
+```
+
+The workflow adds a product-wide requirement registry, feature traceability,
+verification evidence, deterministic audits, coverage reporting, and an
+append-only change ledger around the normal `specify → plan → tasks → implement`
+cycle. See the
+[Product Governance guide](extensions/product-governance/README.md) for local
+checkout installation, command examples, CI usage, and artifact details.
 
 ## 🔧 Specify CLI Reference
 

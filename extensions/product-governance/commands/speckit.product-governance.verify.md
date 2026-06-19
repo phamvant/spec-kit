@@ -1,8 +1,8 @@
 ---
 description: "Collect and validate feature verification evidence"
 scripts:
-  sh: ../scripts/bash/product-governance.sh
-  ps: ../scripts/powershell/product-governance.ps1
+  sh: .specify/extensions/product-governance/scripts/bash/product-governance.sh
+  ps: .specify/extensions/product-governance/scripts/powershell/product-governance.ps1
 ---
 
 # Verify Product Requirements
@@ -12,3 +12,14 @@ evidence for every `implements` requirement, and call deterministic `verify
 --gate`. Do not append the changelog and do not transition lifecycle state
 without a separate deterministic registry operation.
 
+Execute from the project root:
+
+```text
+{SCRIPT} --json verify --feature "<feature-directory-name>" \
+  --commit "<commit-reference>" \
+  --requirements '<requirements-evidence-json>' \
+  --gate
+```
+
+Preserve evidence references exactly and quote JSON safely for the active
+shell. Report every failed, missing, or not-run requirement.
