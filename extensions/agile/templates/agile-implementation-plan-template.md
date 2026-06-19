@@ -32,7 +32,25 @@ sprints:
 
 ## 4. Overall Roadmap
 
+| Sprint | Goal | Demoable increment |
+|---|---|---|
+| Sprint 1 | `<outcome-oriented goal>` | `<increment that can be shown to users/stakeholders>` |
+
 ## 5. Detailed Sprint Backlog
+
+### Sprint 1 — `<sprint title>`
+
+**Goal:** `<testable sprint outcome>`
+
+| ID | Pri | SP | Backlog item | Dependency | Acceptance criteria |
+|---|---:|---:|---|---|---|
+| `<ITEM-ID>` | P0 | 5 | `<deliverable backlog item>` | — | `<testable acceptance criteria>` |
+
+#### Task breakdown
+
+| Subtask ID | Parent | Owner | Est. | Task / output |
+|---|---|---|---:|---|
+| `<ITEM-ID>-T01` | `<ITEM-ID>` | `<role>` | 1d | `<concrete implementation output>` |
 
 ## 6. Critical Path and Key Dependencies
 

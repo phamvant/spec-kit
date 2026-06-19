@@ -432,6 +432,146 @@ class TestCLIEndToEnd:
         validation = run_cli(tmp_path, "validate")
         assert validation.returncode == 0, validation.stdout
 
+    def test_breakdown_preserves_detailed_sprint_backlog(
+        self, tmp_path: Path
+    ):
+        init_project(tmp_path)
+        add = run_cli(
+            tmp_path,
+            "requirement", "add",
+            "--capability-token", "AUTH",
+            "--data", json.dumps(requirement_value()),
+        )
+        assert add.returncode == 0, add.stderr
+        reviewed = run_cli(
+            tmp_path,
+            "requirement", "transition",
+            "--id", "PRD-AUTH-001",
+            "--status", "reviewed",
+        )
+        assert reviewed.returncode == 0, reviewed.stderr
+        approved = run_cli(
+            tmp_path,
+            "requirement", "transition",
+            "--id", "PRD-AUTH-001",
+            "--status", "approved",
+        )
+        assert approved.returncode == 0, approved.stderr
+
+        metadata = {
+            "schema_version": "1.0",
+            "plan": {
+                "id": "AGILE-PLAN-001",
+                "title": "Detailed delivery",
+                "status": "draft",
+                "source_requirements": ["PRD-AUTH-001"],
+            },
+            "sprints": [{
+                "id": "SPRINT-001",
+                "title": "Identity foundation",
+                "goal": "Deliver login and RBAC foundation",
+                "status": "planned",
+                "requirements": ["PRD-AUTH-001"],
+                "features": [{
+                    "id": "001-auth",
+                    "title": "Authentication",
+                    "required": True,
+                    "requirements": ["PRD-AUTH-001"],
+                }],
+                "depends_on": [],
+            }],
+        }
+        body = """# Agile Implementation Plan
+
+## 1. Estimation Assumptions
+
+Concrete assumptions.
+
+## 2. Backlog Conventions
+
+IDs use role prefixes.
+
+## 3. Definition of Ready and Definition of Done
+
+Ready and done criteria.
+
+## 4. Overall Roadmap
+
+| Sprint | Goal | Increment có thể demo |
+|---|---|---|
+| Sprint 1 | Identity foundation | Login and RBAC demo |
+
+## 5. Detailed Sprint Backlog
+
+### Sprint 1 — Identity foundation
+
+**Goal:** Deliver login and RBAC foundation.
+
+| ID | Pri | SP | Backlog item | Dependency | Acceptance criteria |
+|---|---:|---:|---|---|---|
+| BE-010 | P0 | 8 | Integrate Auth0 JWT/OIDC | — | Invalid issuer/audience/signature is rejected |
+
+#### Task breakdown
+
+| Subtask ID | Parent | Owner | Est. | Task / output |
+|---|---|---|---:|---|
+| BE-010-T01 | BE-010 | BE | 1d | Configure JWKS validation and issuer checks |
+| BE-010-T02 | BE-010 | BE | 1d | Add integration tests for invalid tokens |
+
+## 6. Critical Path and Key Dependencies
+
+Auth before RBAC.
+
+## 7. Epic-Level Acceptance Criteria
+
+Users can authenticate.
+
+## 8. Minimum Test Plan
+
+Auth integration tests.
+
+## 9. Release Gates
+
+All P0 tests pass.
+
+## 10. Risks and Mitigations
+
+OIDC config drift.
+
+## 11. Open Decisions
+
+None.
+
+## 12. Proposed Actions After Open Decisions
+
+Proceed.
+"""
+        plan_input = tmp_path / ".specify" / "agile" / "detailed-plan.md"
+        plan_input.parent.mkdir()
+        plan_input.write_text(
+            "---\n"
+            + yaml.safe_dump(metadata, sort_keys=False)
+            + "---\n\n"
+            + body,
+            encoding="utf-8",
+        )
+        kickoff = run_cli(
+            tmp_path,
+            "agile",
+            "kickoff",
+            "--input", str(plan_input.relative_to(tmp_path)),
+            "--approve",
+        )
+        assert kickoff.returncode == 0, kickoff.stderr
+        breakdown = run_cli(tmp_path, "agile", "breakdown")
+        assert breakdown.returncode == 0, breakdown.stderr
+        sprint_text = (
+            tmp_path / ".product" / "agile" / "sprints" / "SPRINT-001.md"
+        ).read_text(encoding="utf-8")
+        assert "BE-010-T01" in sprint_text
+        assert "Configure JWKS validation" in sprint_text
+        assert "Invalid issuer/audience/signature is rejected" in sprint_text
+
     def test_sprint_verify_reports_incomplete_tasks(self, tmp_path: Path):
         setup_verified_agile_sprint(tmp_path)
         tasks = tmp_path / "specs" / "001-auth" / "tasks.md"

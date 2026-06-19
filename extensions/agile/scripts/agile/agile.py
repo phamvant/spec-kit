@@ -34,6 +34,12 @@ REQUIRED_PLAN_HEADINGS = (
     "## 12. Proposed Actions After Open Decisions",
 )
 TASK_RE = re.compile(r"^\s*-\s+\[(?P<mark>[ xX])\]\s+(?P<id>T\d{3,})\b")
+SPRINT_HEADING_RE = re.compile(
+    r"^(?P<level>#{2,6})\s+"
+    r"(?:(?P<id>SPRINT-[0-9]{3,})|Sprint\s+(?P<number>[0-9]+))\b"
+    r"(?P<rest>.*)$",
+    re.IGNORECASE,
+)
 
 
 def _parse_markdown(path: Path) -> tuple[dict[str, Any], str]:
@@ -61,6 +67,69 @@ def _parse_markdown(path: Path) -> tuple[dict[str, Any], str]:
 def _render_markdown(metadata: dict[str, Any], body: str) -> str:
     frontmatter = yaml.safe_dump(metadata, sort_keys=False, allow_unicode=True).rstrip()
     return f"---\n{frontmatter}\n---\n\n{body.lstrip()}"
+
+
+def _sprint_display_name(sprint: dict[str, Any]) -> str:
+    match = re.fullmatch(r"SPRINT-([0-9]{3,})", sprint["id"])
+    if not match:
+        return f"{sprint['id']} — {sprint['title']}"
+    return f"Sprint {int(match.group(1))} — {sprint['title']}"
+
+
+def _extract_plan_section(body: str, heading: str, next_heading: str) -> str:
+    start = body.find(heading)
+    if start < 0:
+        return ""
+    start = body.find("\n", start)
+    if start < 0:
+        return ""
+    end = body.find(next_heading, start)
+    return body[start:end if end >= 0 else len(body)].strip()
+
+
+def _sprint_detail_sections(body: str) -> dict[str, str]:
+    section = _extract_plan_section(
+        body,
+        "## 5. Detailed Sprint Backlog",
+        "## 6. Critical Path and Key Dependencies",
+    )
+    if not section:
+        return {}
+
+    sections: dict[str, str] = {}
+    current_id: str | None = None
+    current_lines: list[str] = []
+
+    def flush() -> None:
+        nonlocal current_id, current_lines
+        if current_id and current_lines:
+            sections[current_id] = "\n".join(current_lines).strip()
+        current_id = None
+        current_lines = []
+
+    for line in section.splitlines():
+        match = SPRINT_HEADING_RE.match(line)
+        if match:
+            flush()
+            if match.group("id"):
+                current_id = match.group("id").upper()
+            else:
+                current_id = f"SPRINT-{int(match.group('number')):03d}"
+            current_lines.append(line)
+            continue
+        if current_id:
+            current_lines.append(line)
+    flush()
+    return sections
+
+
+def _without_leading_heading(markdown: str) -> str:
+    lines = markdown.strip().splitlines()
+    if lines and SPRINT_HEADING_RE.match(lines[0]):
+        lines = lines[1:]
+        if lines and not lines[0].strip():
+            lines = lines[1:]
+    return "\n".join(lines).strip()
 
 
 def _requirement_statuses(root: Path) -> dict[str, str]:
@@ -201,20 +270,24 @@ def kickoff(
     return destination, metadata
 
 
-def _sprint_body(sprint: dict[str, Any]) -> str:
+def _sprint_body(sprint: dict[str, Any], sprint_detail: str | None = None) -> str:
     feature_lines = [
         f"- [ ] {feature['id']} — {feature['title']}"
         for feature in sprint["features"]
     ]
     requirement_text = ", ".join(sprint["requirements"]) or "none"
     dependencies = ", ".join(sprint["depends_on"]) or "none"
+    detail = _without_leading_heading(sprint_detail or "")
+    task_breakdown = (
+        detail
+        if detail
+        else "Implementation tasks are owned by each feature's `specs/<feature>/tasks.md`."
+    )
     return "\n".join(
         [
-            f"# {sprint['id']} — {sprint['title']}",
+            f"# {_sprint_display_name(sprint)}",
             "",
-            "## Goal",
-            "",
-            sprint["goal"],
+            f"**Goal:** {sprint['goal']}",
             "",
             "## Requirements",
             "",
@@ -230,7 +303,7 @@ def _sprint_body(sprint: dict[str, Any]) -> str:
             "",
             "## Task Breakdown",
             "",
-            "Implementation tasks are owned by each feature's `specs/<feature>/tasks.md`.",
+            task_breakdown,
             "",
             "## Verification",
             "",
@@ -250,7 +323,7 @@ def breakdown(
     force: bool = False,
 ) -> list[Path]:
     plan_path = safe_path(root, PLAN_PATH, must_exist=True)
-    metadata, _ = _parse_markdown(plan_path)
+    metadata, body = _parse_markdown(plan_path)
     validate_schema(metadata, plan_schema, artifact_path=plan_path)
     _validate_requirement_refs(root, metadata)
     _validate_plan_semantics(metadata)
@@ -258,6 +331,7 @@ def breakdown(
         raise DomainError("Agile implementation plan must be approved before breakdown")
 
     changed: list[Path] = []
+    sprint_details = _sprint_detail_sections(body)
     for sprint in metadata["sprints"]:
         sprint_path = safe_path(root, SPRINTS_PATH / f"{sprint['id']}.md")
         if sprint_path.exists() and not force:
@@ -287,7 +361,10 @@ def breakdown(
         validate_schema(sprint_metadata, sprint_schema, artifact_path=sprint_path)
         _atomic_write(
             sprint_path,
-            _render_markdown(sprint_metadata, _sprint_body(sprint)),
+            _render_markdown(
+                sprint_metadata,
+                _sprint_body(sprint, sprint_details.get(sprint["id"])),
+            ),
         )
         changed.append(sprint_path)
     return changed
