@@ -16,6 +16,7 @@ Use this after installing a Spec Kit release that includes Product Governance:
 specify extension add product-governance
 specify preset add product-sdd
 specify workflow add product-feature-cycle
+specify workflow add product-sprint-feature-cycle
 ```
 
 The extension provides product commands, the preset composes product context
@@ -37,6 +38,9 @@ specify preset add \
 
 specify workflow add \
   "$SPEC_KIT/workflows/product-feature-cycle/workflow.yml"
+
+specify workflow add \
+  "$SPEC_KIT/workflows/product-sprint-feature-cycle/workflow.yml"
 ```
 
 If `specify` is not installed globally, use the checkout executable:
@@ -78,6 +82,10 @@ Most integrations expose slash commands:
 /speckit.product-governance.verify
 /speckit.product-governance.audit
 /speckit.product-governance.changelog
+/speckit.product-governance.kickoff
+/speckit.product-governance.breakdown
+/speckit.product-governance.sprint-check
+/speckit.product-governance.sprint-verify
 ```
 
 Codex uses skills mode and replaces dots with hyphens:
@@ -91,6 +99,10 @@ $speckit-product-governance-validate
 $speckit-product-governance-verify
 $speckit-product-governance-audit
 $speckit-product-governance-changelog
+$speckit-product-governance-kickoff
+$speckit-product-governance-breakdown
+$speckit-product-governance-sprint-check
+$speckit-product-governance-sprint-verify
 ```
 
 ## Quickstart
@@ -184,6 +196,40 @@ specify workflow run product-feature-cycle \
 
 The `feature` input must match the directory name under `specs/`.
 
+For strict Agile enforcement, run the sprint workflow instead:
+
+```bash
+specify workflow run product-sprint-feature-cycle \
+  -i spec="Describe the sprint feature" \
+  -i feature=001-feature-name \
+  -i integration=codex
+```
+
+This workflow executes deterministic sprint eligibility checks before planning
+and again before implementation. A failed check stops the workflow.
+
+## Agile delivery progress
+
+Product Governance can derive sprint progress while keeping Spec Kit feature
+tasks as the implementation source of truth:
+
+```text
+/speckit.product-governance.kickoff
+/speckit.product-governance.breakdown
+/speckit.product-governance.sprint-check
+/speckit.product-governance.sprint-verify SPRINT-001
+```
+
+Codex exposes the equivalent `$speckit-product-governance-*` skills.
+
+`kickoff` creates `.product/agile/implementation-plan.md` from approved product
+requirements. `breakdown` creates one file under `.product/agile/sprints/` per
+sprint. `sprint-check` is a mandatory pre-hook for plan, tasks, analyze, and
+implement; it blocks features outside the approved sprint plan or behind
+unverified dependencies. `sprint-verify` reads each feature's `tasks.md`, trace,
+and verification evidence, then updates the aggregated sprint status. It never
+marks incomplete implementation tasks complete.
+
 ## Artifacts
 
 - `.product/requirements.yml`: canonical product requirement registry.
@@ -193,6 +239,8 @@ The `feature` input must match the directory name under `specs/`.
 - `.product/coverage.json`: generated coverage.
 - `.product/changes/ledger.jsonl`: append-only product change history.
 - `.product/reports/audit-*.{json,md}`: read-only audit reports.
+- `.product/agile/implementation-plan.md`: approved Agile roadmap and sprint allocation.
+- `.product/agile/sprints/SPRINT-*.md`: sprint goals and generated progress projections.
 
 Existing features are not backfilled automatically. Register requirements,
 then link and verify features incrementally. Disabling or uninstalling the

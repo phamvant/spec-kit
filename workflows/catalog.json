@@ -20,6 +20,15 @@
       "version": "1.0.0",
       "url": "https://raw.githubusercontent.com/github/spec-kit/main/workflows/product-feature-cycle/workflow.yml",
       "tags": ["product", "governance", "sdd"]
+    },
+    "product-sprint-feature-cycle": {
+      "id": "product-sprint-feature-cycle",
+      "name": "Product Sprint Feature Cycle",
+      "description": "Runs a sprint-eligible feature through strict governed delivery",
+      "author": "GitHub",
+      "version": "1.0.0",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/main/workflows/product-sprint-feature-cycle/workflow.yml",
+      "tags": ["product", "governance", "agile", "sprint", "sdd"]
     }
   }
 }

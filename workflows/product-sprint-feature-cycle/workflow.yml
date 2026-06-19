@@ -1,0 +1,105 @@
+schema_version: "1.0"
+workflow:
+  id: product-sprint-feature-cycle
+  name: "Product Sprint Feature Cycle"
+  version: "1.0.0"
+  author: "GitHub"
+  description: "Strict Agile sprint delivery through verified product governance"
+
+requires:
+  speckit_version: ">=0.11.0"
+  integrations:
+    any: [claude, copilot, gemini, codex, opencode]
+
+inputs:
+  spec:
+    type: string
+    required: true
+    prompt: "Describe the sprint feature"
+  feature:
+    type: string
+    required: true
+    prompt: "Feature directory name allocated by the Agile implementation plan"
+  integration:
+    type: string
+    default: auto
+
+steps:
+  - id: impact
+    command: speckit.product-governance.impact
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+  - id: approve-impact
+    type: gate
+    message: "Approve product impact and traceability."
+    options: [approve, reject]
+    on_reject: abort
+  - id: specify
+    command: speckit.specify
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+  - id: approve-spec
+    type: gate
+    message: "Approve the product-traceable feature specification."
+    options: [approve, reject]
+    on_reject: abort
+  - id: enforce-sprint-eligibility
+    type: shell
+    run: "python .specify/extensions/product-governance/scripts/product_governance/cli.py --json agile sprint-check"
+    output_format: json
+  - id: plan
+    command: speckit.plan
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+  - id: tasks
+    command: speckit.tasks
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+  - id: analyze
+    command: speckit.analyze
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+  - id: approve-scope
+    type: gate
+    message: "Approve implementation scope."
+    options: [approve, reject]
+    on_reject: abort
+  - id: enforce-before-implement
+    type: shell
+    run: "python .specify/extensions/product-governance/scripts/product_governance/cli.py --json agile sprint-check"
+    output_format: json
+  - id: implement
+    command: speckit.implement
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.spec }}"
+  - id: verify
+    command: speckit.product-governance.verify
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.feature }}"
+  - id: approve-verification
+    type: gate
+    message: "Approve verification evidence."
+    options: [approve, reject]
+    on_reject: abort
+  - id: pre-change-audit
+    command: speckit.product-governance.audit
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "--threshold high"
+  - id: changelog
+    command: speckit.product-governance.changelog
+    integration: "{{ inputs.integration }}"
+    input:
+      args: "{{ inputs.feature }}"
+  - id: post-change-validation
+    command: speckit.product-governance.validate
+    integration: "{{ inputs.integration }}"
+    input:
+      args: ""

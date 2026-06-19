@@ -16,6 +16,13 @@ if __package__ in {None, ""}:
     __package__ = "product_governance"
 
 from .audit import is_blocking, run_audit
+from .agile import (
+    breakdown,
+    check_feature_eligibility,
+    kickoff,
+    validate_agile_artifacts,
+    verify_sprint,
+)
 from .coverage import calculate_coverage, scan_traces, scan_verifications, write_coverage
 from .discovery import (
     import_candidates,
@@ -112,6 +119,11 @@ def validate_project(root: Path) -> list[dict]:
                 artifact_path=discovery_path,
             )
             validate_discovery_semantics(discovery)
+        validate_agile_artifacts(
+            root,
+            plan_schema=SCHEMAS / "agile-plan.schema.json",
+            sprint_schema=SCHEMAS / "agile-sprint.schema.json",
+        )
     except GovernanceError as exc:
         findings.append(exc.as_dict())
     return findings
@@ -343,6 +355,74 @@ def cmd_audit(args: argparse.Namespace, root: Path, op_id: str) -> tuple[dict, i
     return payload, 1 if is_blocking(findings, args.threshold) else 0
 
 
+def cmd_agile(args: argparse.Namespace, root: Path) -> tuple[dict, int]:
+    plan_schema = SCHEMAS / "agile-plan.schema.json"
+    sprint_schema = SCHEMAS / "agile-sprint.schema.json"
+    if args.action == "kickoff":
+        path, metadata = kickoff(
+            root,
+            args.input,
+            approve=args.approve,
+            plan_schema=plan_schema,
+        )
+        return {
+            "message": (
+                "Agile implementation plan approved"
+                if args.approve
+                else "Agile implementation plan created as draft"
+            ),
+            "plan": metadata["plan"],
+            "changed_files": [str(path.relative_to(root))],
+            "no_op": False,
+        }, 0
+    if args.action == "breakdown":
+        changed = breakdown(
+            root,
+            plan_schema=plan_schema,
+            sprint_schema=sprint_schema,
+            force=args.force,
+        )
+        return {
+            "message": f"Created or replaced {len(changed)} sprint files",
+            "changed_files": [str(path.relative_to(root)) for path in changed],
+            "no_op": not changed,
+        }, 0
+    if args.action == "sprint-check":
+        eligibility = check_feature_eligibility(
+            root,
+            args.feature,
+            plan_schema=plan_schema,
+            sprint_schema=sprint_schema,
+        )
+        return {
+            "message": (
+                f"{eligibility['feature']} is eligible for delivery in "
+                f"{eligibility['sprint']}"
+            ),
+            "eligibility": eligibility,
+            "changed_files": [],
+            "no_op": True,
+        }, 0
+
+    sprint_path, plan_path, sprint, findings = verify_sprint(
+        root,
+        args.sprint,
+        plan_schema=plan_schema,
+        sprint_schema=sprint_schema,
+    )
+    code = 0 if sprint["status"] == "verified" else 1
+    return {
+        "message": f"{args.sprint} is {sprint['status']}",
+        "sprint": sprint,
+        "findings": findings,
+        "changed_files": [
+            str(sprint_path.relative_to(root)),
+            str(plan_path.relative_to(root)),
+        ],
+        "no_op": False,
+    }, code
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="product-governance")
     parser.add_argument("--root", type=Path)
@@ -379,6 +459,17 @@ def build_parser() -> argparse.ArgumentParser:
     changelog.add_argument("--feature", required=True)
     audit = sub.add_parser("audit")
     audit.add_argument("--threshold", choices=["critical", "high"], default="high")
+    agile = sub.add_parser("agile")
+    agile_sub = agile.add_subparsers(dest="action", required=True)
+    kickoff_parser = agile_sub.add_parser("kickoff")
+    kickoff_parser.add_argument("--input", type=Path, required=True)
+    kickoff_parser.add_argument("--approve", action="store_true")
+    breakdown_parser = agile_sub.add_parser("breakdown")
+    breakdown_parser.add_argument("--force", action="store_true")
+    check_parser = agile_sub.add_parser("sprint-check")
+    check_parser.add_argument("--feature")
+    verify_parser = agile_sub.add_parser("sprint-verify")
+    verify_parser.add_argument("--sprint", required=True)
     return parser
 
 
@@ -406,8 +497,10 @@ def main(argv: list[str] | None = None) -> int:
             payload, code = cmd_discover(args, root), 0
         elif args.command == "changelog":
             payload, code = cmd_changelog(args, root), 0
-        else:
+        elif args.command == "audit":
             payload, code = cmd_audit(args, root, op_id)
+        else:
+            payload, code = cmd_agile(args, root)
         payload.update({"operation_id": op_id, "ok": code == 0})
         _emit(payload, args.json)
         return code

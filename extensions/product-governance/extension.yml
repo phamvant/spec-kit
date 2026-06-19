@@ -3,8 +3,8 @@ schema_version: "1.0"
 extension:
   id: product-governance
   name: "Product Governance"
-  version: "1.1.0"
-  description: "Product-wide requirement governance, traceability, verification, audit, and append-only change history"
+  version: "1.2.0"
+  description: "Product-wide requirement governance, Agile delivery progress, traceability, verification, audit, and append-only change history"
   author: spec-kit-core
   repository: https://github.com/github/spec-kit
   license: MIT
@@ -38,11 +38,45 @@ provides:
     - name: speckit.product-governance.audit
       file: commands/speckit.product-governance.audit.md
       description: "Run deterministic and bounded semantic product audit"
+    - name: speckit.product-governance.kickoff
+      file: commands/speckit.product-governance.kickoff.md
+      description: "Create and approve an Agile implementation plan"
+    - name: speckit.product-governance.breakdown
+      file: commands/speckit.product-governance.breakdown.md
+      description: "Break an approved implementation plan into sprint files"
+    - name: speckit.product-governance.sprint-verify
+      file: commands/speckit.product-governance.sprint-verify.md
+      description: "Aggregate and verify sprint progress from Spec Kit artifacts"
+    - name: speckit.product-governance.sprint-check
+      file: commands/speckit.product-governance.sprint-check.md
+      description: "Block feature delivery unless its Agile sprint is eligible"
   config:
     - name: product-governance-config.yml
       template: product-governance-config.yml
       description: "Product governance policy and artifact paths"
       required: false
+
+hooks:
+  before_plan:
+    command: speckit.product-governance.sprint-check
+    optional: false
+    priority: 1
+    description: "Enforce Agile plan, sprint allocation, and dependency gates before planning"
+  before_tasks:
+    command: speckit.product-governance.sprint-check
+    optional: false
+    priority: 1
+    description: "Enforce Agile plan, sprint allocation, and dependency gates before task generation"
+  before_analyze:
+    command: speckit.product-governance.sprint-check
+    optional: false
+    priority: 1
+    description: "Enforce Agile plan, sprint allocation, and dependency gates before analysis"
+  before_implement:
+    command: speckit.product-governance.sprint-check
+    optional: false
+    priority: 1
+    description: "Enforce Agile plan, sprint allocation, and dependency gates before implementation"
 
 tags:
   - product
@@ -50,3 +84,5 @@ tags:
   - requirements
   - traceability
   - audit
+  - agile
+  - sprint

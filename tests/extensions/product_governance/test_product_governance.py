@@ -9,7 +9,7 @@ import pytest
 import yaml
 from jsonschema import Draft202012Validator
 
-from specify_cli.extensions import ExtensionManifest, ExtensionManager
+from specify_cli.extensions import CommandRegistrar, ExtensionManifest, ExtensionManager
 from specify_cli.integrations.base import IntegrationBase
 from specify_cli.presets import PresetManifest
 from specify_cli.workflows.engine import WorkflowDefinition, validate_workflow
@@ -66,6 +66,114 @@ def requirement_value(**overrides) -> dict:
     return value
 
 
+def setup_verified_agile_sprint(root: Path) -> Path:
+    init_project(root)
+    add = run_cli(
+        root,
+        "requirement", "add",
+        "--capability-token", "AUTH",
+        "--data", json.dumps(requirement_value()),
+    )
+    assert add.returncode == 0, add.stderr
+    reviewed = run_cli(
+        root,
+        "requirement", "transition",
+        "--id", "PRD-AUTH-001",
+        "--status", "reviewed",
+    )
+    assert reviewed.returncode == 0, reviewed.stderr
+    approved = run_cli(
+        root,
+        "requirement", "transition",
+        "--id", "PRD-AUTH-001",
+        "--status", "approved",
+    )
+    assert approved.returncode == 0, approved.stderr
+
+    plan_input = root / ".specify" / "product-governance" / "agile-plan-input.md"
+    plan_input.parent.mkdir()
+    headings = [
+        "## 1. Estimation Assumptions",
+        "## 2. Backlog Conventions",
+        "## 3. Definition of Ready and Definition of Done",
+        "## 4. Overall Roadmap",
+        "## 5. Detailed Sprint Backlog",
+        "## 6. Critical Path and Key Dependencies",
+        "## 7. Epic-Level Acceptance Criteria",
+        "## 8. Minimum Test Plan",
+        "## 9. Release Gates",
+        "## 10. Risks and Mitigations",
+        "## 11. Open Decisions",
+        "## 12. Proposed Actions After Open Decisions",
+    ]
+    metadata = {
+        "schema_version": "1.0",
+        "plan": {
+            "id": "AGILE-PLAN-001",
+            "title": "Authentication delivery",
+            "status": "draft",
+            "source_requirements": ["PRD-AUTH-001"],
+        },
+        "sprints": [{
+            "id": "SPRINT-001",
+            "title": "Authentication foundation",
+            "goal": "Deliver verified authentication",
+            "status": "planned",
+            "requirements": ["PRD-AUTH-001"],
+            "features": [{
+                "id": "001-auth",
+                "title": "Authentication",
+                "required": True,
+                "requirements": ["PRD-AUTH-001"],
+            }],
+            "depends_on": [],
+        }],
+    }
+    plan_input.write_text(
+        "---\n"
+        + yaml.safe_dump(metadata, sort_keys=False)
+        + "---\n\n# Agile Implementation Plan\n\n"
+        + "\n\nContent\n\n".join(headings)
+        + "\n"
+    )
+
+    kickoff_result = run_cli(
+        root,
+        "agile", "kickoff",
+        "--input", str(plan_input.relative_to(root)),
+        "--approve",
+    )
+    assert kickoff_result.returncode == 0, kickoff_result.stderr
+    breakdown_result = run_cli(root, "agile", "breakdown")
+    assert breakdown_result.returncode == 0, breakdown_result.stderr
+    sprint_path = root / ".product" / "agile" / "sprints" / "SPRINT-001.md"
+    assert sprint_path.is_file()
+
+    trace = run_cli(
+        root,
+        "trace", "--feature", "001-auth",
+        "--implements", "PRD-AUTH-001",
+    )
+    assert trace.returncode == 0, trace.stderr
+    (root / "specs" / "001-auth" / "tasks.md").write_text(
+        "# Tasks\n\n- [X] T001 Implement authentication in src/auth.py\n"
+    )
+    (root / "tests").mkdir()
+    evidence = {
+        "PRD-AUTH-001": {
+            "status": "passed",
+            "evidence": [{"type": "path", "reference": "tests"}],
+        }
+    }
+    verify = run_cli(
+        root,
+        "verify", "--feature", "001-auth", "--commit", "abc123",
+        "--requirements", json.dumps(evidence), "--gate",
+    )
+    assert verify.returncode == 0, verify.stderr
+    return sprint_path
+
+
 class TestSchemas:
     @pytest.mark.parametrize(
         "name",
@@ -77,6 +185,8 @@ class TestSchemas:
             "ledger-event",
             "audit-report",
             "brownfield-discovery",
+            "agile-plan",
+            "agile-sprint",
         ],
     )
     def test_schema_is_draft_2020_12(self, name: str):
@@ -295,13 +405,147 @@ class TestCLIEndToEnd:
             tmp_path / ".product" / "reports" / "brownfield-discovery.md"
         ).is_file()
 
+    def test_agile_kickoff_breakdown_and_sprint_verify(self, tmp_path: Path):
+        sprint_path = setup_verified_agile_sprint(tmp_path)
+
+        eligibility = run_cli(
+            tmp_path, "agile", "sprint-check", "--feature", "001-auth"
+        )
+        assert eligibility.returncode == 0, eligibility.stderr
+        assert json.loads(eligibility.stdout)["eligibility"]["sprint"] == "SPRINT-001"
+
+        sprint_verify = run_cli(
+            tmp_path, "agile", "sprint-verify", "--sprint", "SPRINT-001"
+        )
+        assert sprint_verify.returncode == 0, sprint_verify.stderr
+        payload = json.loads(sprint_verify.stdout)
+        assert payload["sprint"]["status"] == "verified"
+        assert payload["sprint"]["features"][0]["tasks"] == {
+            "total": 1,
+            "completed": 1,
+            "incomplete": 0,
+        }
+        assert "Sprint status:** verified" in sprint_path.read_text()
+        assert "status: verified" in (
+            tmp_path / ".product" / "agile" / "implementation-plan.md"
+        ).read_text()
+        validation = run_cli(tmp_path, "validate")
+        assert validation.returncode == 0, validation.stdout
+
+    def test_sprint_verify_reports_incomplete_tasks(self, tmp_path: Path):
+        setup_verified_agile_sprint(tmp_path)
+        tasks = tmp_path / "specs" / "001-auth" / "tasks.md"
+        tasks.write_text(
+            "# Tasks\n\n"
+            "- [X] T001 Implement authentication in src/auth.py\n"
+            "- [ ] T002 Add rejection tests in tests/test_auth.py\n"
+        )
+        result = run_cli(
+            tmp_path, "agile", "sprint-verify", "--sprint", "SPRINT-001"
+        )
+        assert result.returncode == 1
+        payload = json.loads(result.stdout)
+        assert payload["sprint"]["status"] == "in_progress"
+        assert payload["sprint"]["features"][0]["tasks"]["incomplete"] == 1
+
+    def test_agile_plan_approval_rejects_unapproved_requirements(
+        self, tmp_path: Path
+    ):
+        init_project(tmp_path)
+        add = run_cli(
+            tmp_path,
+            "requirement", "add",
+            "--capability-token", "AUTH",
+            "--data", json.dumps(requirement_value()),
+        )
+        assert add.returncode == 0, add.stderr
+        template = (
+            EXTENSION_ROOT / "templates" / "agile-implementation-plan-template.md"
+        ).read_text()
+        template = template.replace("PRD-EXAMPLE-001", "PRD-AUTH-001")
+        plan_input = tmp_path / ".specify" / "product-governance" / "plan.md"
+        plan_input.parent.mkdir()
+        plan_input.write_text(template)
+
+        result = run_cli(
+            tmp_path,
+            "agile", "kickoff",
+            "--input", str(plan_input.relative_to(tmp_path)),
+            "--approve",
+        )
+        assert result.returncode == 1
+        assert "requires approved product requirements" in result.stderr
+
+    def test_sprint_check_rejects_feature_outside_plan(self, tmp_path: Path):
+        setup_verified_agile_sprint(tmp_path)
+        result = run_cli(
+            tmp_path, "agile", "sprint-check", "--feature", "999-outside"
+        )
+        assert result.returncode == 1
+        assert "not allocated to an Agile sprint" in result.stderr
+
+    def test_sprint_check_rejects_unverified_dependency(self, tmp_path: Path):
+        setup_verified_agile_sprint(tmp_path)
+        plan_path = tmp_path / ".product" / "agile" / "implementation-plan.md"
+        content = plan_path.read_text()
+        _, frontmatter, body = content.split("---", 2)
+        metadata = yaml.safe_load(frontmatter)
+        metadata["sprints"].append({
+            "id": "SPRINT-002",
+            "title": "Dependent delivery",
+            "goal": "Deliver a dependent feature",
+            "status": "planned",
+            "requirements": ["PRD-AUTH-001"],
+            "features": [{
+                "id": "002-dependent",
+                "title": "Dependent feature",
+                "required": True,
+                "requirements": ["PRD-AUTH-001"],
+            }],
+            "depends_on": ["SPRINT-001"],
+        })
+        plan_path.write_text(
+            "---\n"
+            + yaml.safe_dump(metadata, sort_keys=False)
+            + "---"
+            + body
+        )
+        breakdown = run_cli(tmp_path, "agile", "breakdown")
+        assert breakdown.returncode == 0, breakdown.stderr
+
+        result = run_cli(
+            tmp_path, "agile", "sprint-check", "--feature", "002-dependent"
+        )
+        assert result.returncode == 1
+        assert "dependencies are not verified" in result.stderr
+
+    def test_sprint_verify_rejects_trace_missing_planned_requirement(
+        self, tmp_path: Path
+    ):
+        setup_verified_agile_sprint(tmp_path)
+        trace = run_cli(tmp_path, "trace", "--feature", "001-auth")
+        assert trace.returncode == 0, trace.stderr
+
+        result = run_cli(
+            tmp_path, "agile", "sprint-verify", "--sprint", "SPRINT-001"
+        )
+        assert result.returncode == 1
+        payload = json.loads(result.stdout)
+        assert payload["sprint"]["status"] == "implemented"
+        assert payload["sprint"]["features"][0]["verification"]["status"] == "failed"
+        assert any(
+            "does not implement planned requirements" in finding
+            for finding in payload["findings"]
+        )
+
 
 class TestPackageSurface:
     def test_manifest_and_commands(self):
         manifest = ExtensionManifest(EXTENSION_ROOT / "extension.yml")
         assert manifest.id == "product-governance"
-        assert len(manifest.commands) == 8
+        assert len(manifest.commands) == 12
         assert all((EXTENSION_ROOT / command["file"]).is_file() for command in manifest.commands)
+        assert manifest.hooks["before_implement"]["optional"] is False
 
     def test_commands_resolve_extension_local_tool_calls(self):
         manifest = ExtensionManifest(EXTENSION_ROOT / "extension.yml")
@@ -318,6 +562,22 @@ class TestPackageSurface:
                 ".specify/extensions/product-governance/scripts/bash/"
                 "product-governance.sh"
             ) in rendered
+
+    def test_codex_registers_agile_commands_as_skills(self, tmp_path: Path):
+        skills_dir = tmp_path / ".agents" / "skills"
+        skills_dir.mkdir(parents=True)
+        manifest = ExtensionManifest(EXTENSION_ROOT / "extension.yml")
+        CommandRegistrar().register_commands_for_agent(
+            "codex", manifest, EXTENSION_ROOT, tmp_path
+        )
+        for name in ("kickoff", "breakdown", "sprint-check", "sprint-verify"):
+            skill = (
+                skills_dir
+                / f"speckit-product-governance-{name}"
+                / "SKILL.md"
+            )
+            assert skill.is_file()
+            assert "product-governance.sh" in skill.read_text()
 
     def test_install_copies_deterministic_package(self, tmp_path: Path):
         (tmp_path / ".specify").mkdir()
@@ -345,3 +605,14 @@ class TestPackageSurface:
         assert ids.index("approve-verification") < ids.index("pre-change-audit")
         assert ids.index("pre-change-audit") < ids.index("changelog")
         assert ids.index("changelog") < ids.index("post-change-validation")
+
+        sprint_workflow = WorkflowDefinition.from_yaml(
+            PROJECT_ROOT
+            / "workflows"
+            / "product-sprint-feature-cycle"
+            / "workflow.yml"
+        )
+        assert validate_workflow(sprint_workflow) == []
+        sprint_ids = [step["id"] for step in sprint_workflow.steps]
+        assert sprint_ids.index("enforce-sprint-eligibility") < sprint_ids.index("plan")
+        assert sprint_ids.index("enforce-before-implement") < sprint_ids.index("implement")
