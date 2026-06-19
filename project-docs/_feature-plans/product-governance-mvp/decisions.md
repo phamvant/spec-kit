@@ -131,6 +131,19 @@ Không thêm core `specify product` subcommand trong MVP. Core chỉ thay đổi
 implementation chứng minh extension point hiện tại không đủ; thay đổi đó phải
 là prerequisite PR riêng.
 
+## D012 — Brownfield discovery promotion
+
+- Public command: `speckit.product-governance.discover`.
+- Semantic source analysis produces candidate requirements with repository
+  evidence, confidence, and open questions.
+- The deterministic backend validates and persists the discovery report.
+- Import requires explicit `CAND-NNN` selections and writes requirements only
+  with status `proposed`.
+- Existing code never implies product approval, implementation lifecycle, or
+  verification status.
+
+This is the constrained first slice promoted from post-MVP item PG-105.
+
 ## Dependency consequence
 
 Các quyết định domain D002–D006 đủ để bắt đầu schema và deterministic core.

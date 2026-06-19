@@ -985,6 +985,7 @@ Mỗi milestone phải merge được độc lập và không yêu cầu capabil
 | 2026-06-19 | Audit block `critical`/`high`; exit codes là 0/1/2 | Approved |
 | 2026-06-19 | Workflow dùng verify → gate → pre-audit → append → post-validate | Approved |
 | 2026-06-19 | MVP dùng extension-local Python CLI, không thêm core subcommand | Approved |
+| 2026-06-19 | Brownfield discovery may propose evidence-backed candidates; only explicitly selected candidates are imported and always as `proposed` | Approved |
 
 Mọi thay đổi scope phải thêm một dòng vào bảng này và cập nhật đồng thời
 Non-Goals, Acceptance Criteria và post-MVP backlog.

@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: product-governance
   name: "Product Governance"
-  version: "1.0.0"
+  version: "1.1.0"
   description: "Product-wide requirement governance, traceability, verification, audit, and append-only change history"
   author: spec-kit-core
   repository: https://github.com/github/spec-kit
@@ -23,6 +23,9 @@ provides:
     - name: speckit.product-governance.impact
       file: commands/speckit.product-governance.impact.md
       description: "Analyze product impact and propose traceability"
+    - name: speckit.product-governance.discover
+      file: commands/speckit.product-governance.discover.md
+      description: "Discover evidence-backed candidate requirements from a brownfield codebase"
     - name: speckit.product-governance.validate
       file: commands/speckit.product-governance.validate.md
       description: "Validate all product governance artifacts"
@@ -47,4 +50,3 @@ tags:
   - requirements
   - traceability
   - audit
-

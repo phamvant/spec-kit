@@ -76,6 +76,7 @@ class TestSchemas:
             "verification",
             "ledger-event",
             "audit-report",
+            "brownfield-discovery",
         ],
     )
     def test_schema_is_draft_2020_12(self, name: str):
@@ -226,12 +227,80 @@ class TestCLIEndToEnd:
         assert audit.returncode == 0, audit.stderr
         assert len(list((tmp_path / ".product" / "reports").glob("audit-*.json"))) == 1
 
+    def test_brownfield_discovery_requires_explicit_import(self, tmp_path: Path):
+        init_project(tmp_path)
+        source = tmp_path / "src" / "auth.py"
+        source.parent.mkdir()
+        source.write_text("def authenticate(user):\n    return bool(user)\n")
+        candidate_input = (
+            tmp_path
+            / ".specify"
+            / "product-governance"
+            / "brownfield-discovery-input.json"
+        )
+        candidate_input.parent.mkdir()
+        candidate_input.write_text(json.dumps({
+            "schema_version": "1.0",
+            "generated_at": "2026-06-19T10:00:00Z",
+            "product": {"id": "example", "name": "Example"},
+            "scope": {"included": ["src"], "excluded": [".venv"]},
+            "candidates": [{
+                "candidate_id": "CAND-001",
+                "capability_token": "AUTH",
+                "title": "Authenticate users",
+                "description": "The product must authenticate a supplied user before access is granted.",
+                "type": "functional",
+                "capability": "CAP-IDENTITY",
+                "priority": "must",
+                "owner": "unassigned",
+                "source": "src/auth.py",
+                "verification": {"method": "acceptance-test"},
+                "evidence": [{
+                    "path": "src/auth.py",
+                    "lines": "1-2",
+                    "reason": "The public function implements an authentication decision."
+                }],
+                "confidence": 0.8,
+                "tags": ["authentication"]
+            }],
+            "open_questions": ["What identities are considered valid?"]
+        }))
+        write = run_cli(
+            tmp_path,
+            "discover",
+            "write",
+            "--input",
+            str(candidate_input.relative_to(tmp_path)),
+        )
+        assert write.returncode == 0, write.stderr
+        registry = yaml.safe_load(
+            (tmp_path / ".product" / "requirements.yml").read_text()
+        )
+        assert registry["requirements"] == []
+        rejected = run_cli(tmp_path, "discover", "import")
+        assert rejected.returncode == 1
+        imported = run_cli(
+            tmp_path,
+            "discover",
+            "import",
+            "--approve",
+            "CAND-001",
+        )
+        assert imported.returncode == 0, imported.stderr
+        requirement = json.loads(imported.stdout)["requirements"][0]
+        assert requirement["id"] == "PRD-AUTH-001"
+        assert requirement["status"] == "proposed"
+        assert "brownfield-discovery" in requirement["tags"]
+        assert (
+            tmp_path / ".product" / "reports" / "brownfield-discovery.md"
+        ).is_file()
+
 
 class TestPackageSurface:
     def test_manifest_and_commands(self):
         manifest = ExtensionManifest(EXTENSION_ROOT / "extension.yml")
         assert manifest.id == "product-governance"
-        assert len(manifest.commands) == 7
+        assert len(manifest.commands) == 8
         assert all((EXTENSION_ROOT / command["file"]).is_file() for command in manifest.commands)
 
     def test_commands_resolve_extension_local_tool_calls(self):

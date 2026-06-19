@@ -194,6 +194,7 @@ commands such as:
 ```text
 /speckit.product-governance.init
 /speckit.product-governance.requirement
+/speckit.product-governance.discover
 /speckit.product-governance.impact
 /speckit.product-governance.verify
 /speckit.product-governance.audit
@@ -206,6 +207,7 @@ Codex uses the equivalent skills:
 ```text
 $speckit-product-governance-init
 $speckit-product-governance-requirement
+$speckit-product-governance-discover
 $speckit-product-governance-impact
 $speckit-product-governance-verify
 $speckit-product-governance-audit
@@ -216,7 +218,8 @@ $speckit-product-governance-validate
 The workflow adds a product-wide requirement registry, feature traceability,
 verification evidence, deterministic audits, coverage reporting, and an
 append-only change ledger around the normal `specify → plan → tasks → implement`
-cycle. See the
+cycle. The `discover` command can bootstrap an existing brownfield codebase by
+proposing evidence-backed requirements for explicit human approval. See the
 [Product Governance guide](extensions/product-governance/README.md) for local
 checkout installation, command examples, CI usage, and artifact details.
 

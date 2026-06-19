@@ -61,8 +61,15 @@ Dependency: audit metrics chứng minh full scan là bottleneck.
 
 ### PG-105 — Automated legacy backfill
 
+**Status:** Initial constrained slice implemented on 2026-06-19.
+
 Phân tích `specs/*` cũ, đề xuất global requirements và trace links để human
 approve.
+
+Implemented scope: bounded brownfield source/test/configuration discovery,
+evidence-backed candidate report, and explicit import of selected candidates as
+`proposed` requirements. Automatic approval, lifecycle inference, automatic
+trace generation, and claims of semantic completeness remain deferred.
 
 Dependency: semantic audit đạt độ ổn định chấp nhận được.
 

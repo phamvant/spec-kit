@@ -73,6 +73,7 @@ Most integrations expose slash commands:
 /speckit.product-governance.init
 /speckit.product-governance.requirement
 /speckit.product-governance.impact
+/speckit.product-governance.discover
 /speckit.product-governance.validate
 /speckit.product-governance.verify
 /speckit.product-governance.audit
@@ -85,6 +86,7 @@ Codex uses skills mode and replaces dots with hyphens:
 $speckit-product-governance-init
 $speckit-product-governance-requirement
 $speckit-product-governance-impact
+$speckit-product-governance-discover
 $speckit-product-governance-validate
 $speckit-product-governance-verify
 $speckit-product-governance-audit
@@ -109,6 +111,35 @@ $speckit-product-governance-requirement Add an approved authentication requireme
 $speckit-product-governance-validate
 ```
 
+## Brownfield projects
+
+For an existing codebase with no governance documentation, run:
+
+```text
+/speckit.product-governance.discover
+```
+
+Codex:
+
+```text
+$speckit-product-governance-discover
+```
+
+The command:
+
+1. Inspects source code, tests, public interfaces, schemas, configuration, and
+   existing documentation.
+2. Initializes `.product/` after confirming the inferred product identity.
+3. Writes evidence-backed candidates to:
+   - `.product/reports/brownfield-discovery.json`
+   - `.product/reports/brownfield-discovery.md`
+4. Asks which `CAND-NNN` entries should be imported.
+5. Imports only explicitly selected candidates as `proposed` requirements.
+
+Discovery describes behavior observed in the repository. It does not assume
+that existing behavior is correct product policy, and it never marks inferred
+requirements as approved, implemented, or verified.
+
 The installed slash commands execute the extension-local deterministic CLI.
 For CI or debugging, the same backend can be called directly:
 
@@ -127,6 +158,7 @@ For most integrations:
 ```text
 /speckit.product-governance.init
 /speckit.product-governance.requirement
+/speckit.product-governance.discover
 /speckit.product-governance.impact
 /speckit.specify
 /speckit.plan

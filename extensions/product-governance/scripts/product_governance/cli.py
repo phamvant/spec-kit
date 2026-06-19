@@ -17,6 +17,11 @@ if __package__ in {None, ""}:
 
 from .audit import is_blocking, run_audit
 from .coverage import calculate_coverage, scan_traces, scan_verifications, write_coverage
+from .discovery import (
+    import_candidates,
+    validate_discovery_semantics,
+    write_discovery_report,
+)
 from .errors import DomainError, GovernanceError, InvocationError
 from .graph import build_graph
 from .io import (
@@ -26,6 +31,7 @@ from .io import (
     discover_project_root,
     load_json,
     load_yaml,
+    safe_path,
     validate_schema,
 )
 from .ledger import append_event, read_ledger, render_changelog
@@ -97,6 +103,15 @@ def validate_project(root: Path) -> list[dict]:
         ledger_path = root / ".product" / "changes" / "ledger.jsonl"
         for event in read_ledger(ledger_path):
             validate_schema(event, SCHEMAS / "ledger-event.schema.json", artifact_path=ledger_path)
+        discovery_path = root / ".product" / "reports" / "brownfield-discovery.json"
+        if discovery_path.exists():
+            discovery = load_json(discovery_path)
+            validate_schema(
+                discovery,
+                SCHEMAS / "brownfield-discovery.schema.json",
+                artifact_path=discovery_path,
+            )
+            validate_discovery_semantics(discovery)
     except GovernanceError as exc:
         findings.append(exc.as_dict())
     return findings
@@ -218,6 +233,66 @@ def cmd_coverage(args: argparse.Namespace, root: Path) -> dict:
     return {"message": "Coverage calculated", "coverage": coverage, "changed_files": [str(path.relative_to(root))], "no_op": False}
 
 
+def cmd_discover(args: argparse.Namespace, root: Path) -> dict:
+    reports_dir = root / ".product" / "reports"
+    report_path = reports_dir / "brownfield-discovery.json"
+    markdown_path = reports_dir / "brownfield-discovery.md"
+    if args.action == "write":
+        if args.input is None:
+            raise InvocationError("discover write requires --input")
+        source_path = safe_path(root, args.input, must_exist=True)
+        report = load_json(source_path)
+        validate_schema(
+            report,
+            SCHEMAS / "brownfield-discovery.schema.json",
+            artifact_path=source_path,
+        )
+        registry, _ = _load_registry(root)
+        if report["product"]["id"] != registry["product"]["id"]:
+            raise DomainError(
+                "Discovery report product ID does not match the initialized registry"
+            )
+        changed = write_discovery_report(
+            root,
+            report,
+            json_path=report_path,
+            markdown_path=markdown_path,
+        )
+        return {
+            "message": f"Brownfield discovery recorded with {len(report['candidates'])} candidates",
+            "candidate_ids": [item["candidate_id"] for item in report["candidates"]],
+            "changed_files": [str(path.relative_to(root)) for path in changed],
+            "no_op": False,
+        }
+    selected_report = safe_path(
+        root,
+        args.report or report_path,
+        must_exist=True,
+    )
+    report = load_json(selected_report)
+    validate_schema(
+        report,
+        SCHEMAS / "brownfield-discovery.schema.json",
+        artifact_path=selected_report,
+    )
+    if args.action == "show":
+        return {
+            "message": f"{len(report['candidates'])} brownfield candidates",
+            "report": report,
+            "changed_files": [],
+            "no_op": True,
+        }
+    registry_path, _ = _paths(root)
+    imported, skipped = import_candidates(registry_path, report, args.approve)
+    return {
+        "message": f"Imported {len(imported)} approved brownfield candidates",
+        "requirements": [item.to_dict() for item in imported],
+        "skipped_candidate_ids": skipped,
+        "changed_files": [".product/requirements.yml"] if imported else [],
+        "no_op": not imported,
+    }
+
+
 def cmd_changelog(args: argparse.Namespace, root: Path) -> dict:
     feature_dir = root / "specs" / args.feature
     trace = validate_trace_pair(root, feature_dir)
@@ -295,6 +370,11 @@ def build_parser() -> argparse.ArgumentParser:
     verify.add_argument("--gate", action="store_true")
     coverage = sub.add_parser("coverage")
     coverage.add_argument("--count-refines", action="store_true")
+    discover = sub.add_parser("discover")
+    discover.add_argument("action", choices=["write", "show", "import"])
+    discover.add_argument("--input", type=Path)
+    discover.add_argument("--report", type=Path)
+    discover.add_argument("--approve", nargs="*", default=[])
     changelog = sub.add_parser("changelog")
     changelog.add_argument("--feature", required=True)
     audit = sub.add_parser("audit")
@@ -322,6 +402,8 @@ def main(argv: list[str] | None = None) -> int:
             payload, code = cmd_verify(args, root), 0
         elif args.command == "coverage":
             payload, code = cmd_coverage(args, root), 0
+        elif args.command == "discover":
+            payload, code = cmd_discover(args, root), 0
         elif args.command == "changelog":
             payload, code = cmd_changelog(args, root), 0
         else:
