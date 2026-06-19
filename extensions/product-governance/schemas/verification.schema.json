@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "feature", "verified_at", "commit", "requirements"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "feature": {"type": "string", "minLength": 1},
+    "verified_at": {"type": "string", "format": "date-time"},
+    "commit": {"type": "string", "minLength": 1},
+    "requirements": {
+      "type": "object",
+      "patternProperties": {
+        "^PRD-[A-Z0-9]+-[0-9]{3,}$": {
+          "type": "object",
+          "required": ["status", "evidence"],
+          "additionalProperties": false,
+          "properties": {
+            "status": {"enum": ["passed", "failed", "not-run"]},
+            "evidence": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["type", "reference"],
+                "additionalProperties": false,
+                "properties": {
+                  "type": {"enum": ["path", "url", "test", "commit"]},
+                  "reference": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

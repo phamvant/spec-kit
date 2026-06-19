@@ -1,0 +1,50 @@
+schema_version: "1.0"
+
+extension:
+  id: product-governance
+  name: "Product Governance"
+  version: "1.0.0"
+  description: "Product-wide requirement governance, traceability, verification, audit, and append-only change history"
+  author: spec-kit-core
+  repository: https://github.com/github/spec-kit
+  license: MIT
+
+requires:
+  speckit_version: ">=0.11.0"
+
+provides:
+  commands:
+    - name: speckit.product-governance.init
+      file: commands/speckit.product-governance.init.md
+      description: "Initialize product governance artifacts"
+    - name: speckit.product-governance.requirement
+      file: commands/speckit.product-governance.requirement.md
+      description: "Manage the product requirement registry"
+    - name: speckit.product-governance.impact
+      file: commands/speckit.product-governance.impact.md
+      description: "Analyze product impact and propose traceability"
+    - name: speckit.product-governance.validate
+      file: commands/speckit.product-governance.validate.md
+      description: "Validate all product governance artifacts"
+    - name: speckit.product-governance.verify
+      file: commands/speckit.product-governance.verify.md
+      description: "Record and gate verification evidence"
+    - name: speckit.product-governance.changelog
+      file: commands/speckit.product-governance.changelog.md
+      description: "Append a verified product change event"
+    - name: speckit.product-governance.audit
+      file: commands/speckit.product-governance.audit.md
+      description: "Run deterministic and bounded semantic product audit"
+  config:
+    - name: product-governance-config.yml
+      template: product-governance-config.yml
+      description: "Product governance policy and artifact paths"
+      required: false
+
+tags:
+  - product
+  - governance
+  - requirements
+  - traceability
+  - audit
+

@@ -46,6 +46,22 @@
         "workflow",
         "core"
       ]
+    },
+    "product-governance": {
+      "name": "Product Governance",
+      "id": "product-governance",
+      "version": "1.0.0",
+      "description": "Product-wide requirement governance, traceability, verification, audit, and append-only change history",
+      "author": "spec-kit-core",
+      "repository": "https://github.com/github/spec-kit",
+      "bundled": true,
+      "tags": [
+        "product",
+        "governance",
+        "requirements",
+        "traceability",
+        "audit"
+      ]
     }
   }
 }

@@ -1,0 +1,49 @@
+schema_version: "1.0"
+
+preset:
+  id: product-sdd
+  name: "Product SDD"
+  version: "1.0.0"
+  description: "Composes product governance into the core specification-driven development commands"
+  author: spec-kit-core
+  repository: https://github.com/github/spec-kit
+  license: MIT
+
+requires:
+  speckit_version: ">=0.11.0"
+
+provides:
+  templates:
+    - type: command
+      name: speckit.specify
+      file: commands/speckit.specify.md
+      description: "Require product impact and traceability before specification"
+      replaces: speckit.specify
+      strategy: wrap
+    - type: command
+      name: speckit.plan
+      file: commands/speckit.plan.md
+      description: "Load bounded product context into planning"
+      replaces: speckit.plan
+      strategy: wrap
+    - type: command
+      name: speckit.tasks
+      file: commands/speckit.tasks.md
+      description: "Require product requirement or internal references on tasks"
+      replaces: speckit.tasks
+      strategy: wrap
+    - type: command
+      name: speckit.analyze
+      file: commands/speckit.analyze.md
+      description: "Add global product linkage analysis"
+      replaces: speckit.analyze
+      strategy: wrap
+    - type: command
+      name: speckit.implement
+      file: commands/speckit.implement.md
+      description: "Use bounded product context and emit an implementation summary"
+      replaces: speckit.implement
+      strategy: wrap
+
+tags: [product, governance, sdd, traceability]
+

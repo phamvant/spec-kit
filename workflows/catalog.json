@@ -11,6 +11,15 @@
       "version": "1.0.0",
       "url": "https://raw.githubusercontent.com/github/spec-kit/main/workflows/speckit/workflow.yml",
       "tags": ["sdd", "full-cycle"]
+    },
+    "product-feature-cycle": {
+      "id": "product-feature-cycle",
+      "name": "Product Feature Cycle",
+      "description": "Runs product impact through verified, audited, append-only delivery",
+      "author": "GitHub",
+      "version": "1.0.0",
+      "url": "https://raw.githubusercontent.com/github/spec-kit/main/workflows/product-feature-cycle/workflow.yml",
+      "tags": ["product", "governance", "sdd"]
     }
   }
 }

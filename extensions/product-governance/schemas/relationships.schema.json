@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "relationships"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "type", "to"],
+        "additionalProperties": false,
+        "properties": {
+          "from": {"type": "string", "pattern": "^PRD-[A-Z0-9]+-[0-9]{3,}$"},
+          "type": {"enum": ["parent_of", "depends_on", "conflicts_with", "supersedes"]},
+          "to": {"type": "string", "pattern": "^PRD-[A-Z0-9]+-[0-9]{3,}$"}
+        }
+      }
+    }
+  }
+}

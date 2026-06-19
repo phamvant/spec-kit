@@ -1,0 +1,11 @@
+schema_version: "1.0"
+paths:
+  product: ".product"
+  specs: "specs"
+coverage:
+  count_refines: false
+audit:
+  blocking_threshold: high
+scan:
+  max_features: 1000
+

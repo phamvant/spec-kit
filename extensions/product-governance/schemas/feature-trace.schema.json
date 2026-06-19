@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "feature", "implements", "refines", "impacts", "unaffected"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "feature": {"type": "string", "minLength": 1},
+    "implements": {"$ref": "#/$defs/ids"},
+    "refines": {"$ref": "#/$defs/ids"},
+    "impacts": {"$ref": "#/$defs/ids"},
+    "unaffected": {"$ref": "#/$defs/ids"},
+    "trace_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+  },
+  "$defs": {
+    "ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^PRD-[A-Z0-9]+-[0-9]{3,}$"}}
+  }
+}

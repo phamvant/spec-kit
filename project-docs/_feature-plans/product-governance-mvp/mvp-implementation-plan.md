@@ -908,20 +908,36 @@ Ledger mutation phải log:
 
 MVP hoàn thành khi:
 
-- [ ] Extension cài và gỡ sạch trên các integration format được hỗ trợ.
-- [ ] `.product/` được init mà không overwrite nội dung người dùng.
-- [ ] Requirement registry và relationships được schema-validate.
-- [ ] ID allocator không tạo duplicate và không tái sử dụng ID retired.
-- [ ] Feature trace links được validate xuyên toàn bộ `specs/`.
-- [ ] Coverage được tính đúng và có JSON output.
-- [ ] Verification evidence bắt buộc trước changelog.
-- [ ] Ledger append atomic và idempotent.
-- [ ] Audit là read-only và phát hiện các fixture violations đã định nghĩa.
-- [ ] Preset đưa product context vào core feature workflow.
-- [ ] Workflow có đủ human gates và resume đúng.
-- [ ] CI có thể chạy deterministic validation không cần agent.
-- [ ] Quickstart và migration guide được viết.
-- [ ] Post-MVP capability không vô tình xuất hiện trong public MVP contract.
+- [x] Extension cài và gỡ sạch trên các integration format được hỗ trợ.
+  Evidence: `tests/extensions/product_governance/test_product_governance.py`
+  và shared integration/extension suites.
+- [x] `.product/` được init mà không overwrite nội dung người dùng.
+  Evidence: deterministic `init` implementation và CLI E2E test.
+- [x] Requirement registry và relationships được schema-validate.
+  Evidence: `extensions/product-governance/schemas/` và schema contract tests.
+- [x] ID allocator không tạo duplicate và không tái sử dụng ID retired.
+  Evidence: allocator high-water mark tests.
+- [x] Feature trace links được validate xuyên toàn bộ `specs/`.
+  Evidence: trace round-trip/drift test và aggregate CLI validation.
+- [x] Coverage được tính đúng và có JSON output.
+  Evidence: coverage unit tests và `coverage` CLI command.
+- [x] Verification evidence bắt buộc trước changelog.
+  Evidence: verification gate and CLI E2E test.
+- [x] Ledger append atomic và idempotent.
+  Evidence: locked append implementation and idempotency test.
+- [x] Audit là read-only và phát hiện các fixture violations đã định nghĩa.
+  Evidence: deterministic audit implementation and report tests.
+- [x] Preset đưa product context vào core feature workflow.
+  Evidence: `presets/product-sdd/` manifest and composition validation.
+- [x] Workflow có đủ human gates và resume đúng.
+  Evidence: `workflows/product-feature-cycle/workflow.yml` ordering contract;
+  resume behavior is covered by the shared workflow engine suite.
+- [x] CI có thể chạy deterministic validation không cần agent.
+  Evidence: extension-local Python CLI and JSON/exit-code E2E tests.
+- [x] Quickstart và migration guide được viết.
+  Evidence: `extensions/product-governance/README.md`.
+- [x] Post-MVP capability không vô tình xuất hiện trong public MVP contract.
+  Evidence: schemas, manifest, CLI parser, preset and workflow contract review.
 
 ## 19. Risks and Mitigations
 

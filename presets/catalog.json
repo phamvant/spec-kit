@@ -25,6 +25,29 @@
         "workflow",
         "core"
       ]
+    },
+    "product-sdd": {
+      "name": "Product SDD",
+      "id": "product-sdd",
+      "version": "1.0.0",
+      "description": "Composes product governance into the core specification-driven development commands",
+      "author": "spec-kit-core",
+      "repository": "https://github.com/github/spec-kit",
+      "license": "MIT",
+      "bundled": true,
+      "requires": {
+        "speckit_version": ">=0.11.0"
+      },
+      "provides": {
+        "commands": 5,
+        "templates": 0
+      },
+      "tags": [
+        "product",
+        "governance",
+        "sdd",
+        "traceability"
+      ]
     }
   }
 }

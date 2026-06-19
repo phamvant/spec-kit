@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "event_id", "occurred_at", "event_type", "feature", "requirements", "commit", "evidence", "actor", "idempotency_key"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "event_id": {"type": "string", "pattern": "^CHG-[0-9]{6,}$"},
+    "occurred_at": {"type": "string", "format": "date-time"},
+    "event_type": {"enum": ["feature_verified", "correction"]},
+    "feature": {"type": "string", "minLength": 1},
+    "requirements": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^PRD-[A-Z0-9]+-[0-9]{3,}$"}},
+    "commit": {"type": "string", "minLength": 1},
+    "evidence": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "actor": {"type": "string", "minLength": 1},
+    "idempotency_key": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "corrects_event": {"type": "string", "pattern": "^CHG-[0-9]{6,}$"}
+  }
+}
