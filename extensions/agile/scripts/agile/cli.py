@@ -29,7 +29,7 @@ from .discovery import (
     validate_discovery_semantics,
     write_discovery_report,
 )
-from .errors import DomainError, GovernanceError, InvocationError
+from .errors import DomainError, GovernanceError, InfrastructureError, InvocationError
 from .graph import build_graph
 from .io import (
     _atomic_write,
@@ -57,6 +57,8 @@ from .verification import require_passed_implements, write_evidence
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 SCHEMAS = PACKAGE_ROOT / "schemas"
 TEMPLATES = PACKAGE_ROOT / "templates"
+ARCHITECH_MARKER_START = "<!-- SPECKIT AGILE ARCHITECH START -->"
+ARCHITECH_MARKER_END = "<!-- SPECKIT AGILE ARCHITECH END -->"
 
 
 def operation_id() -> str:
@@ -177,6 +179,109 @@ def _load_json_argument(raw: str) -> dict:
     if not isinstance(value, dict):
         raise InvocationError("Expected a JSON object")
     return value
+
+
+def _project_relative(root: Path, path: Path) -> str:
+    return str(path.resolve().relative_to(root.resolve())).replace("\\", "/")
+
+
+def _configured_context_file(root: Path) -> Path:
+    config_path = root / ".specify" / "extensions" / "agent-context" / "agent-context-config.yml"
+    context_file = ""
+    if config_path.exists():
+        config = load_yaml(config_path)
+        value = config.get("context_file")
+        if isinstance(value, str):
+            context_file = value.strip()
+
+    if not context_file:
+        for candidate in (
+            "AGENTS.md",
+            "AGENT.md",
+            "CLAUDE.md",
+            ".github/copilot-instructions.md",
+            "GEMINI.md",
+        ):
+            if (root / candidate).exists():
+                context_file = candidate
+                break
+
+    if not context_file:
+        context_file = "AGENTS.md"
+
+    if "\\" in context_file:
+        raise InfrastructureError(
+            f"context_file must use forward-slash separators: {context_file}"
+        )
+    context_path = safe_path(root, context_file)
+    if context_path.is_dir():
+        raise InfrastructureError(f"context_file points to a directory: {context_file}")
+    return context_path
+
+
+def _replace_marked_section(
+    content: str,
+    section: str,
+    *,
+    start: str = ARCHITECH_MARKER_START,
+    end: str = ARCHITECH_MARKER_END,
+) -> str:
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
+    s = content.find(start)
+    e = content.find(end, s if s != -1 else 0)
+    if s != -1 and e != -1 and e > s:
+        end_of_marker = e + len(end)
+        if end_of_marker < len(content) and content[end_of_marker] == "\n":
+            end_of_marker += 1
+        return content[:s] + section + content[end_of_marker:]
+    if s != -1:
+        return content[:s] + section
+    if e != -1:
+        end_of_marker = e + len(end)
+        if end_of_marker < len(content) and content[end_of_marker] == "\n":
+            end_of_marker += 1
+        return section + content[end_of_marker:]
+    if content and not content.endswith("\n"):
+        content += "\n"
+    return (content + "\n" + section) if content else section
+
+
+def cmd_architech(args: argparse.Namespace, root: Path) -> dict:
+    source_path = safe_path(root, args.source, must_exist=True)
+    if source_path.is_dir():
+        raise InfrastructureError(f"Architecture source must be a file: {args.source}")
+
+    summary_path = safe_path(root, args.summary_file, must_exist=True)
+    if summary_path.is_dir():
+        raise InfrastructureError(f"Architecture summary must be a file: {args.summary_file}")
+    summary = summary_path.read_text(encoding="utf-8").strip()
+    if not summary:
+        raise InvocationError("Architecture summary file is empty")
+
+    context_path = _configured_context_file(root)
+    context = context_path.read_text(encoding="utf-8-sig") if context_path.exists() else ""
+    source_rel = _project_relative(root, source_path)
+    generated_rel = _project_relative(root, summary_path)
+    updated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    section = (
+        f"{ARCHITECH_MARKER_START}\n"
+        "## Architecture and Tech Stack Vision\n\n"
+        f"- Source: `{source_rel}`\n"
+        f"- Generated summary: `{generated_rel}`\n"
+        f"- Updated: `{updated_at}`\n\n"
+        f"{summary}\n"
+        f"{ARCHITECH_MARKER_END}\n"
+    )
+    new_context = _replace_marked_section(context, section)
+    _atomic_write(context_path, new_context)
+    return {
+        "message": f"Architecture context updated in {_project_relative(root, context_path)}",
+        "context_file": _project_relative(root, context_path),
+        "source_file": source_rel,
+        "summary_file": generated_rel,
+        "changed_files": [_project_relative(root, context_path)],
+        "no_op": new_context == context,
+    }
 
 
 def cmd_requirement(args: argparse.Namespace, root: Path) -> dict:
@@ -455,6 +560,9 @@ def build_parser() -> argparse.ArgumentParser:
     discover.add_argument("--input", type=Path)
     discover.add_argument("--report", type=Path)
     discover.add_argument("--approve", nargs="*", default=[])
+    architech = sub.add_parser("architech")
+    architech.add_argument("--source", type=Path, required=True)
+    architech.add_argument("--summary-file", type=Path, required=True)
     changelog = sub.add_parser("changelog")
     changelog.add_argument("--feature", required=True)
     audit = sub.add_parser("audit")
@@ -495,6 +603,8 @@ def main(argv: list[str] | None = None) -> int:
             payload, code = cmd_coverage(args, root), 0
         elif args.command == "discover":
             payload, code = cmd_discover(args, root), 0
+        elif args.command == "architech":
+            payload, code = cmd_architech(args, root), 0
         elif args.command == "changelog":
             payload, code = cmd_changelog(args, root), 0
         elif args.command == "audit":

@@ -539,11 +539,50 @@ class TestCLIEndToEnd:
         )
 
 
+class TestArchitechContext:
+    def test_architech_updates_configured_context_file(self, tmp_path: Path):
+        config_dir = tmp_path / ".specify" / "extensions" / "agent-context"
+        config_dir.mkdir(parents=True)
+        (config_dir / "agent-context-config.yml").write_text(
+            "context_file: CLAUDE.md\n",
+            encoding="utf-8",
+        )
+        docs = tmp_path / "docs"
+        docs.mkdir()
+        (docs / "architecture.md").write_text(
+            "# Architecture\n\nUse Python 3.12 and PostgreSQL.\n",
+            encoding="utf-8",
+        )
+        summary_dir = tmp_path / ".specify" / "agile"
+        summary_dir.mkdir(parents=True)
+        (summary_dir / "architech-summary.md").write_text(
+            "### Tech Stack\n\n- Python 3.12\n- PostgreSQL\n",
+            encoding="utf-8",
+        )
+
+        result = run_cli(
+            tmp_path,
+            "architech",
+            "--source", "docs/architecture.md",
+            "--summary-file", ".specify/agile/architech-summary.md",
+        )
+
+        assert result.returncode == 0, result.stderr
+        payload = json.loads(result.stdout)
+        assert payload["context_file"] == "CLAUDE.md"
+        assert payload["source_file"] == "docs/architecture.md"
+        text = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+        assert "<!-- SPECKIT AGILE ARCHITECH START -->" in text
+        assert "Python 3.12" in text
+        assert "PostgreSQL" in text
+        assert "docs/architecture.md" in text
+
+
 class TestPackageSurface:
     def test_manifest_and_commands(self):
         manifest = ExtensionManifest(EXTENSION_ROOT / "extension.yml")
         assert manifest.id == "agile"
-        assert len(manifest.commands) == 12
+        assert len(manifest.commands) == 13
         assert all((EXTENSION_ROOT / command["file"]).is_file() for command in manifest.commands)
         assert manifest.hooks["before_implement"]["optional"] is False
 
@@ -570,7 +609,7 @@ class TestPackageSurface:
         CommandRegistrar().register_commands_for_agent(
             "codex", manifest, EXTENSION_ROOT, tmp_path
         )
-        for name in ("kickoff", "breakdown", "sprint-check", "sprint-verify"):
+        for name in ("architech", "kickoff", "breakdown", "sprint-check", "sprint-verify"):
             skill = (
                 skills_dir
                 / f"speckit-agile-{name}"

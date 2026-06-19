@@ -74,6 +74,7 @@ commands or skills.
 Most integrations expose slash commands:
 
 ```text
+/speckit.agile.architech
 /speckit.agile.init
 /speckit.agile.requirement
 /speckit.agile.impact
@@ -91,6 +92,7 @@ Most integrations expose slash commands:
 Codex uses skills mode and replaces dots with hyphens:
 
 ```text
+$speckit-agile-architech
 $speckit-agile-init
 $speckit-agile-requirement
 $speckit-agile-impact
@@ -110,6 +112,7 @@ $speckit-agile-sprint-verify
 For most integrations:
 
 ```text
+/speckit.agile.architech docs/architecture.md
 /speckit.agile.init --product-id example --product-name "Example Product"
 /speckit.agile.requirement add an approved authentication requirement
 /speckit.agile.validate
@@ -118,10 +121,33 @@ For most integrations:
 For Codex:
 
 ```text
+$speckit-agile-architech docs/architecture.md
 $speckit-agile-init Initialize Example Product with product ID example
 $speckit-agile-requirement Add an approved authentication requirement
 $speckit-agile-validate
 ```
+
+## Architecture and tech-stack context
+
+Use `speckit.agile.architech` when an existing architecture document should
+become durable context for coding agents:
+
+```text
+/speckit.agile.architech docs/architecture.md
+```
+
+Codex:
+
+```text
+$speckit-agile-architech docs/architecture.md
+```
+
+The command reads the specified project-relative architecture file, generates
+a concise `.specify/agile/architech-summary.md`, and updates the active coding
+agent context file configured by the `agent-context` extension, such as
+`AGENTS.md` or `CLAUDE.md`. The update is contained inside a managed
+`SPECKIT AGILE ARCHITECH` section so rerunning the command replaces only that
+section.
 
 ## Brownfield projects
 
