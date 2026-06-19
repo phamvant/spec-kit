@@ -1,2 +1,0 @@
-"""Product governance extension tests."""
-

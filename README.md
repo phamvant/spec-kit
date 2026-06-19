@@ -24,7 +24,7 @@
 - [📽️ Video Overview](#️-video-overview)
 - [🌍 Community](#-community)
 - [🤖 Supported AI Coding Agent Integrations](#-supported-ai-coding-agent-integrations)
-- [🏛️ Product Governance Workflow](#️-product-governance-workflow)
+- [🏛️ Agile Workflow](#️-agile-workflow)
 - [🔧 Specify CLI Reference](#-specify-cli-reference)
 - [🧩 Making Spec Kit Your Own: Extensions & Presets](#-making-spec-kit-your-own-extensions--presets)
 - [📚 Core Philosophy](#-core-philosophy)
@@ -176,14 +176,14 @@ Additional commands for enhanced quality and validation:
 | `/speckit.analyze`   | `speckit-analyze`      | Cross-artifact consistency & coverage analysis (run after `/speckit.tasks`, before `/speckit.implement`)                             |
 | `/speckit.checklist` | `speckit-checklist`    | Generate custom quality checklists that validate requirements completeness, clarity, and consistency (like "unit tests for English") |
 
-## 🏛️ Product Governance Workflow
+## 🏛️ Agile Workflow
 
 For products that need requirements managed across multiple features, install
-the bundled Product Governance extension, Product SDD preset, and gated feature
+the bundled Agile extension, Product SDD preset, and gated feature
 workflow from the root of an initialized project:
 
 ```bash
-specify extension add product-governance
+specify extension add agile
 specify preset add product-sdd
 specify workflow add product-feature-cycle
 ```
@@ -192,27 +192,27 @@ Restart or reload the coding agent after installation. Most integrations expose
 commands such as:
 
 ```text
-/speckit.product-governance.init
-/speckit.product-governance.requirement
-/speckit.product-governance.discover
-/speckit.product-governance.impact
-/speckit.product-governance.verify
-/speckit.product-governance.audit
-/speckit.product-governance.changelog
-/speckit.product-governance.validate
+/speckit.agile.init
+/speckit.agile.requirement
+/speckit.agile.discover
+/speckit.agile.impact
+/speckit.agile.verify
+/speckit.agile.audit
+/speckit.agile.changelog
+/speckit.agile.validate
 ```
 
 Codex uses the equivalent skills:
 
 ```text
-$speckit-product-governance-init
-$speckit-product-governance-requirement
-$speckit-product-governance-discover
-$speckit-product-governance-impact
-$speckit-product-governance-verify
-$speckit-product-governance-audit
-$speckit-product-governance-changelog
-$speckit-product-governance-validate
+$speckit-agile-init
+$speckit-agile-requirement
+$speckit-agile-discover
+$speckit-agile-impact
+$speckit-agile-verify
+$speckit-agile-audit
+$speckit-agile-changelog
+$speckit-agile-validate
 ```
 
 The workflow adds a product-wide requirement registry, feature traceability,
@@ -220,7 +220,7 @@ verification evidence, deterministic audits, coverage reporting, and an
 append-only change ledger around the normal `specify → plan → tasks → implement`
 cycle. The `discover` command can bootstrap an existing brownfield codebase by
 proposing evidence-backed requirements for explicit human approval. See the
-[Product Governance guide](extensions/product-governance/README.md) for local
+[Agile guide](extensions/agile/README.md) for local
 checkout installation, command examples, CI usage, and artifact details.
 
 ## 🔧 Specify CLI Reference

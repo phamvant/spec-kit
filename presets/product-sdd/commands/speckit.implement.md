@@ -6,7 +6,7 @@ strategy: wrap
 ## Product Implementation Boundary
 
 Before loading implementation context, execute the mandatory
-`speckit.product-governance.sprint-check` hook for the active feature. Stop if
+`speckit.agile.sprint-check` hook for the active feature. Stop if
 the Agile plan is not approved, the feature is not allocated to a sprint, or a
 dependency sprint is not verified.
 

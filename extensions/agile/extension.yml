@@ -1,0 +1,88 @@
+schema_version: "1.0"
+
+extension:
+  id: agile
+  name: "Agile"
+  version: "1.2.0"
+  description: "Product-wide requirement governance, Agile delivery progress, traceability, verification, audit, and append-only change history"
+  author: spec-kit-core
+  repository: https://github.com/github/spec-kit
+  license: MIT
+
+requires:
+  speckit_version: ">=0.11.0"
+
+provides:
+  commands:
+    - name: speckit.agile.init
+      file: commands/speckit.agile.init.md
+      description: "Initialize Agile governance artifacts"
+    - name: speckit.agile.requirement
+      file: commands/speckit.agile.requirement.md
+      description: "Manage the product requirement registry"
+    - name: speckit.agile.impact
+      file: commands/speckit.agile.impact.md
+      description: "Analyze product impact and propose traceability"
+    - name: speckit.agile.discover
+      file: commands/speckit.agile.discover.md
+      description: "Discover evidence-backed candidate requirements from a brownfield codebase"
+    - name: speckit.agile.validate
+      file: commands/speckit.agile.validate.md
+      description: "Validate all Agile governance artifacts"
+    - name: speckit.agile.verify
+      file: commands/speckit.agile.verify.md
+      description: "Record and gate verification evidence"
+    - name: speckit.agile.changelog
+      file: commands/speckit.agile.changelog.md
+      description: "Append a verified product change event"
+    - name: speckit.agile.audit
+      file: commands/speckit.agile.audit.md
+      description: "Run deterministic and bounded semantic product audit"
+    - name: speckit.agile.kickoff
+      file: commands/speckit.agile.kickoff.md
+      description: "Create and approve an Agile implementation plan"
+    - name: speckit.agile.breakdown
+      file: commands/speckit.agile.breakdown.md
+      description: "Break an approved implementation plan into sprint files"
+    - name: speckit.agile.sprint-verify
+      file: commands/speckit.agile.sprint-verify.md
+      description: "Aggregate and verify sprint progress from Spec Kit artifacts"
+    - name: speckit.agile.sprint-check
+      file: commands/speckit.agile.sprint-check.md
+      description: "Block feature delivery unless its Agile sprint is eligible"
+  config:
+    - name: agile-config.yml
+      template: agile-config.yml
+      description: "Agile governance policy and artifact paths"
+      required: false
+
+hooks:
+  before_plan:
+    command: speckit.agile.sprint-check
+    optional: false
+    priority: 1
+    description: "Enforce Agile plan, sprint allocation, and dependency gates before planning"
+  before_tasks:
+    command: speckit.agile.sprint-check
+    optional: false
+    priority: 1
+    description: "Enforce Agile plan, sprint allocation, and dependency gates before task generation"
+  before_analyze:
+    command: speckit.agile.sprint-check
+    optional: false
+    priority: 1
+    description: "Enforce Agile plan, sprint allocation, and dependency gates before analysis"
+  before_implement:
+    command: speckit.agile.sprint-check
+    optional: false
+    priority: 1
+    description: "Enforce Agile plan, sprint allocation, and dependency gates before implementation"
+
+tags:
+  - product
+  - governance
+  - requirements
+  - traceability
+  - audit
+  - agile
+  - sprint

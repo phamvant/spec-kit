@@ -4,7 +4,7 @@ workflow:
   name: "Product Sprint Feature Cycle"
   version: "1.0.0"
   author: "GitHub"
-  description: "Strict Agile sprint delivery through verified product governance"
+  description: "Strict Agile sprint delivery through verified Agile governance"
 
 requires:
   speckit_version: ">=0.11.0"
@@ -26,7 +26,7 @@ inputs:
 
 steps:
   - id: impact
-    command: speckit.product-governance.impact
+    command: speckit.agile.impact
     integration: "{{ inputs.integration }}"
     input:
       args: "{{ inputs.spec }}"
@@ -47,7 +47,7 @@ steps:
     on_reject: abort
   - id: enforce-sprint-eligibility
     type: shell
-    run: "python .specify/extensions/product-governance/scripts/product_governance/cli.py --json agile sprint-check"
+    run: "python .specify/extensions/agile/scripts/agile/cli.py --json agile sprint-check"
     output_format: json
   - id: plan
     command: speckit.plan
@@ -71,7 +71,7 @@ steps:
     on_reject: abort
   - id: enforce-before-implement
     type: shell
-    run: "python .specify/extensions/product-governance/scripts/product_governance/cli.py --json agile sprint-check"
+    run: "python .specify/extensions/agile/scripts/agile/cli.py --json agile sprint-check"
     output_format: json
   - id: implement
     command: speckit.implement
@@ -79,7 +79,7 @@ steps:
     input:
       args: "{{ inputs.spec }}"
   - id: verify
-    command: speckit.product-governance.verify
+    command: speckit.agile.verify
     integration: "{{ inputs.integration }}"
     input:
       args: "{{ inputs.feature }}"
@@ -89,17 +89,17 @@ steps:
     options: [approve, reject]
     on_reject: abort
   - id: pre-change-audit
-    command: speckit.product-governance.audit
+    command: speckit.agile.audit
     integration: "{{ inputs.integration }}"
     input:
       args: "--threshold high"
   - id: changelog
-    command: speckit.product-governance.changelog
+    command: speckit.agile.changelog
     integration: "{{ inputs.integration }}"
     input:
       args: "{{ inputs.feature }}"
   - id: post-change-validation
-    command: speckit.product-governance.validate
+    command: speckit.agile.validate
     integration: "{{ inputs.integration }}"
     input:
       args: ""

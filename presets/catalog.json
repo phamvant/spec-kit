@@ -30,7 +30,7 @@
       "name": "Product SDD",
       "id": "product-sdd",
       "version": "1.0.0",
-      "description": "Composes product governance into the core specification-driven development commands",
+      "description": "Composes Agile governance into the core specification-driven development commands",
       "author": "spec-kit-core",
       "repository": "https://github.com/github/spec-kit",
       "license": "MIT",
